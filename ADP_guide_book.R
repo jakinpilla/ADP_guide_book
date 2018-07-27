@@ -412,4 +412,82 @@ length(pemax)
 
 bio <- data.frame(age, weight, bmp, fev, rv, frc, tlc, pemax)
 write.csv(bio, './data/bio.csv', row.names = F)
-read.csv('./data/bio.csv')
+bio <- read.csv('./data/bio.csv')
+head(bio)
+step(lm(pemax~1, bio), scope=list(lower=~1, upper=~age+height+weight+bmp+rv+frc+tlc), direction = 'forward')
+step(lm(pemax~age+height+weight+bmp+rv+frc+tlc, bio), direction = 'backward')
+step(lm(pemax~1, bio), scope=list(lower=~1, upper=~age+height+weight+bmp+rv+frc+tlc), direction = 'both')
+
+# install.packages('Hmisc')
+library(Hmisc)
+data(mtcars)
+head(mtcars)
+dim(mtcars)
+drat <- mtcars$drat
+disp <- mtcars$disp
+plot(drat, disp)
+cor(drat, disp)
+rcorr(as.matrix(mtcars), type='pearson')
+cov(mtcars)
+
+rcorr(as.matrix(mtcars), type='spearman')
+
+korean <- c(85, 75, 65, 78, 59, 60, 90, 100, 99, 91, 70)
+math <- c(80, 60, 75, 40, 50, 64, 70, 78, 90, 98, 50)
+english <- c(80, 70, 69, 79, 80, 95, 98, 97, 67, 80, 59)
+science <- c(90, 100, 50, 80, 67, 89, 60, 79, 89, 80, 100)
+test <- data.frame(korean, math, english, science)
+test
+rcorr(as.matrix(test), type='spearman')
+
+data(eurodist)
+eurodist      
+loc <- cmdscale(eurodist)
+x <- loc[,1]
+y <- loc[,2]
+plot(x, y, type='n', main='eurodist')
+text(x, y, rownames(loc), cex=.8)
+abline(v=0, h=0)
+
+library(datasets)
+data(USArrests)
+head(USArrests)
+summary(USArrests)
+
+fit <- princomp(USArrests, cor=T)
+summary(fit)
+loadings(fit)
+fit$scores
+biplot(fit)
+
+nm <- c('쇠고기라면', '해물라면', '얼큰라면', '떡라면', '짬뽕라면', '만두라면', '치즈라면', '된장라면', 
+        '볶음라면', '김치라면')
+nodle <- c(2, 1, 5, 2, 3, 4, 4, 1, 3, 5)
+bowl <- c(4, 5, 3, 2, 5, 3, 4, 2, 3, 5)
+soup <- c(5, 1, 4, 3, 5, 2, 3, 1, 2, 3)
+nodle_data <- data.frame(nodle, bowl, soup, row.names = nm)
+nodle_data
+write.csv(nodle_data, './data/nodle_data.csv', fileEncoding = 'utf-8')
+rownames(nodle_data)
+
+library(readr)
+nodle_data <- read_csv('./data/nodle_data.csv')
+nodle_data
+nodle_data <- data.frame(column_to_rownames(nodle_data, var= "X1"))
+nodle_data
+p1 = prcomp(nodle_data, scale=T)
+p1
+summary(p1)
+predict(p1)
+biplot(p1)
+
+
+
+
+
+
+
+
+
+
+
