@@ -1,5 +1,5 @@
 getwd()
-setwd("C:/Users/dsc/adp_guide")
+setwd("C:/Users/dsc/adp_guidebook")
 
 # install.packages('RODBC')
 library(RODBC)
@@ -288,24 +288,128 @@ x=a%*%t(b)
 x
 y=a*b
 y
-z=c
 
+# static analysis
 
+head(iris)
+library(MASS)
+data(Animals)
+head(Animals)
 
+# regression
+set.seed(2)
+x = runif(10,0,11)
+y = 2 + 3*x + rnorm(10,0,.2)
+dfrm = data.frame(x,y)
+dfrm
+lm(y~x, data=dfrm)
 
+set.seed(2)
+u = runif(10,0,11)
+v = runif(10,11,20)
+w = runif(10,1,30)
+y = 3 + .1*u + 2*v -3*w + rnorm(10,0,.1)
+dfrm = data.frame(y, u, v, w)
+dfrm
 
+m <- lm(y~u+v+w)
+m
+summary(m)
 
+library(MASS)
+head(ChickWeight)
+summary(ChickWeight)
+dim(ChickWeight)
+ChickWeight$Chick
 
+ChickWeight %>% filter(Chick == 5)
+length(ChickWeight$Chick)
+ChickWeight %>% group_by(Chick) %>% summarise(sum.Chick = count(ChickWeight$Chick)) -> chicksum
+chicksum
+chicksum$sum.Chick -> chicksum
+chicksum %>% filter(chicksum$freq != 12) ## 12개의 데이터가 없는 닭 :: 18(2) / 16(7) / 15(8) / 8(11) / 44(10)
+colnames(ChickWeight)
+ChickWeight %>% filter((Chick == 1) & (Diet == 1)) -> Chick
+lm(weight ~ Time, Chick) -> lm_chick
+summary(lm_chick)
 
+head(cars)
+cars$speed2 <- cars$speed^2
+head(cars)
+cars[, c(3,1,2)] %>% head()
+lm(dist ~ speed + speed2, data=cars)
+summary(lm(dist ~ speed + speed2, data=cars))
 
+x <- c(1, 2, 3, 4, 5, 6, 7, 8, 9)
+y <- c(5, 3, 2, 3, 4, 6, 10, 12 ,18)
+df1 <-data.frame(x, y)
+df1
+plot(df1)
+library(ggplot2)
+ggplot(data=df1) + geom_point(aes(df1$x, df1$y))
+ggplot(data=df1, aes(x, y)) + geom_point(color='blue', alpha=.5, size=3) 
 
+df1$x2 <- x^2
+df1
+lm(y~x, data=df1)
+summary(lm(y~x, data=df1))
+plot(lm(y~x, data=df1))
 
+lm(y~x+x2, data=df1)
+summary(lm(y~x+x2, data=df1))
+plot(lm(y~x+x2, data=df1))
 
+x1 <- c(7, 1,11, 11, 7, 11, 3, 1, 2, 21, 1, 11, 10)
+x2 <- c(26, 29, 56, 31, 52, 55, 71, 31, 54, 47, 40, 66, 68)
+x3 <- c(6, 15, 8, 8, 6, 9, 17, 22, 18, 4, 23, 9, 8)
+x4 <- c(60, 52, 20, 47, 33, 22, 6, 44, 22, 26, 34, 12, 12)
 
+Y <- c(78.5, 74.3, 104.3, 87.6, 95.9, 109.2, 102.7, 72.5, 93.1, 115.9, 83.9, 113.3, 109.4)
+df <- data.frame(x1, x2, x3, x4, Y)
+head(df)
+write.csv(df, './data/df_p390.csv')
 
+a <- lm(Y ~ x1 + x2 + x3 + x4, data = df)
+a
+summary(a)
 
+b <- lm(Y ~ x1 + x2 + x4, data=df)
+b
+summary(b)
+c <- lm(Y ~x1+x2, data=df)
+c
+summary(c)
 
+step(lm(Y ~ 1, df), scope=list(lower=~1, upper=~x1+x2+x3+x4), direction='forward')
+step(lm(Y ~ 1, df), scope=list(lower=~1, upper=~x1+x2+x3+x4), direction='both')
 
+data(hills)
+head(hills)
+step(lm(time ~ 1, hills), scope=list(lower=~1, upper=~dist+climb), direction='forward')
 
+age <- c(7, 7, 8, 8, 8, 9, 11, 12, 12, 13, 13, 14, 14, 15, 16, 17, 17, 17, 17, 19, 19, 20, 23, 23, 23)
+length(age)
+height <- c(109, 112, 124, 125, 127, 130, 139, 150, 146, 155, 156, 153, 160, 158, 160, 153, 174, 176, 171, 156, 
+            174, 178, 180, 175, 179)
+length(height)
+weight <- c(13.1, 12.9, 14.1, 16.2, 21.5, 17.5, 30.7, 28.4, 25.1, 31.5, 39.9, 42.1, 45.6, 51.2, 35.9, 
+            34.8, 44.7, 60.1, 42.6, 37.2, 54.6, 64, 73.8, 51.1, 71.5)
+length(weight)
+bmp <- c(68, 65, 64, 67, 93, 68, 89, 69, 67, 68, 89, 90, 93, 93, 66, 70, 70, 92, 69, 72, 86, 86, 97, 71, 95)
+length(bmp)
+fev <- c(32, 19, 22, 41, 52, 44, 28, 18, 24, 23, 39, 26, 45, 45, 31, 29, 49, 29, 38, 21, 37, 34, 57, 33, 52)
+length(fev)
+rv <- c(258, 449, 441, 234, 202, 308, 305, 369, 312, 413, 206, 253, 174, 158, 302, 204, 187, 188, 172, 216,
+        184, 225, 171, 224, 225)
+length(rv)
+frc <- c(183, 245, 268, 146, 131, 155, 179, 198, 194, 225, 142, 191, 139, 124, 133, 118, 104, 129, 130, 119, 118, 148, 108, 131, 127)
+length(frc)
+tlc <- c(137, 134, 147, 124, 104, 118, 119, 103, 128, 136, 95, 121, 108, 90, 101, 120, 103, 130, 103,
+         81, 101, 135, 98, 113, 101)
+length(tlc)
+pemax <- c(95, 85, 100, 85, 95, 80, 65, 110, 70, 95, 110, 90, 100, 80, 134, 134, 165, 120, 130, 85, 85, 160, 165, 95, 195)
+length(pemax)
 
-
+bio <- data.frame(age, weight, bmp, fev, rv, frc, tlc, pemax)
+write.csv(bio, './data/bio.csv', row.names = F)
+read.csv('./data/bio.csv')
