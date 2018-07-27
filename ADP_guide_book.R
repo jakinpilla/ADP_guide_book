@@ -481,6 +481,238 @@ summary(p1)
 predict(p1)
 biplot(p1)
 
+Price <- c(6,7,6,5,7,6,5,6,3,1,2,5,2,3,1,2)
+Software <- c(5,3,4,7,7,4,7,5,5,3,6,7,4,5,6,3)
+Aesthetics <- c(3,2,4,1,5,2,2,4,6,7,6,7,5,6,5,7)
+Brand <- c(4,2,5,3,5,3,1,4,7,5,7,6,6,5,5,7)
+data <- data.frame(Price, Software, Aesthetics, Brand)
+write.csv(data, './data/computer_data_p419.csv', row.names = F)
+data <- read.csv('./data/computer_data_p419.csv')
+head(data)
+
+pca <- princomp(data, cor=T)
+summary(pca)
+predict(pca)
+biplot(pca)
+head(data)
+
+# ARIMA
+Nile
+ldeaths
+str(Nile)
+str(ldeaths)
+
+plot(Nile)
+plot(ldeaths)
+
+ldeaths.decompose <- decompose(ldeaths)
+ldeaths.decompose$seasonal
+plot(ldeaths.decompose)
+ldeaths.decompose.adj <- ldeaths - ldeaths.decompose$seasonal
+plot(ldeaths.decompose.adj)
+
+Nile.diff1 <- diff(Nile, differences=1)
+plot(Nile.diff1)
+
+Nile.diff2 <- diff(Nile, differences=2)
+plot(Nile.diff2)
+
+# 자기상관함수(acf), 부분자기상관함수
+
+acf(Nile.diff2, lag.max=20)
+acf(Nile.diff2, lag.max=20, plot=F)
+
+pacf(Nile.diff2, lag.max=20)
+pacf(Nile.diff2, lag.max=20, plot=F)
+
+install.packages('forecast')
+library(forecast)
+auto.arima(Nile)
+Nile.arima <-  arima(Nile, order=c(1,1,1))
+Nile.arima
+Nile.forecasts <- forecast(Nile.arima, h=10)
+plot(Nile.forecasts)
+
+# exercise firm.csv data
+firm <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+length(firm)
+salary <- c(3030, 6050, 3571, 3300, 0, 9375, 9525, 5000, 999, 3300, 3500, 2493, 
+            1911, 2130, 1185, 5236, 1990, 6000, 6229, 1523)
+length(salary)
+tenure <- c(7, 0, 11, 6, 18, 6, 15, 5, 3, 2, 16, 5, 7, 4, 0, 2, 4, 32, 5, 3)
+length(tenure)
+age <- c(61, 51, 63, 60, 63, 57, 60, 61, 57, 60, 63, 61, 58, 59, 56, 60, 60, 74, 63, 56)
+length(age)
+sales <- c(161315, 144416, 139208, 100697, 100469, 81667, 76431, 57813, 56154, 53588,
+           50777, 47678, 47061, 41322, 37154, 35853, 33674, 33296, 32379, 31707)
+length(sales)
+profits <- c(2956, 22071, 4430, 6370, 9296, 6328, 5807, 5372, 1120, 6398, 5165, 1704, 2945, 1048, 3780, 1259, 
+             568, 3765, 3782, 578)
+length(profits)
+assets <- c(257389, 237545, 49271, 92630, 355935, 86100, 668641, 59920, 36672, 59550, 617679,
+            42754, 33673, 37675, 30966, 299804, 14166, 19166, 194398, 3665875)
+length(assets)
+
+firm <- data.frame(firm, salary, tenure, age, sales, profits, assets)
+write.csv(firm, './data/firm.csv', row.names = F)
+read.csv('./data/firm.csv')
+summary(firm)
+var(firm$salary)
+sd(firm$salary)
+median(firm$salary)
+
+for (i in 2:7) {
+  mean_value = mean(firm[, i])
+  sd_value = sd(firm[, i])
+  median_value = median(firm[, i])
+  print(mean_value)
+  print(sd_value)
+  print(median_value)
+  }
+
+library(ggplot2)
+ggplot(data = firm, aes(x = profits, y = salary)) + geom_point(color='blue')
+ggplot(firm, aes(profits, salary)) + geom_point(color='blue', size=3)
+
+firm_lm_1 <- lm(salary ~ profits, data = firm)
+summary(firm_lm_1)
+
+firm_lm_2 <- lm(salary ~ profits + age + sales, data=firm)
+summary(firm_lm_2)
+
+firm_lm_all <- lm(salary  ~ ., data= firm)
+summary(firm_lm_all)
+
+step(lm(salary ~ ., data=firm), direction='backward')
+step(lm(salary ~ 1., data=firm), scope = list(lower=~1, upper=~tenure+sales+profits+assets),direction='forward')
+step(lm(salary ~ 1., data=firm), scope = list(lower=~1, upper=~tenure+sales+profits+assets),direction='both')
+
+data(iris)
+a <- subset(iris, Species == 'setosa' | Species == 'versicolor')
+a$Species <- as.factor(a$Species)
+str(a)
+b <- glm(Species ~ Sepal.Length, family = binomial, data=a)
+summary(b)
+
+pchisq(138.629, df=99, lower.tail = F)
+pchisq(64.211, df=98, lower.tail = F)
+
+coef(b)
+exp(coef(b)['Sepal.Length'])
+
+confint(b, param='Sepal.Length')
+exp(confint(b, param='Sepal.Length'))
+fitted(b)[c(1:5, 96:100)]
+a
+predict(b, newdata=a[c(1, 50, 51, 100), ], type='response')
+cdplot(Species~Sepal.Length, data=a)
+plot(a$Sepal.Length, a$Species, xlab = 'Sepal.Length')
+x = seq(min(a$Sepal.Length), max(a$Sepal.Length), .1)
+lines(x, 1+(1/(1+exp(-27.831 + 5.140*x))), type='l', col='red')
+
+attach(mtcars)
+str(mtcars)
+glm_vs <- glm(vs ~ mpg + am, data=mtcars, family=binomial)
+summary(glm_vs)
+
+coef(glm_vs)
+pchisq(43.860, df=31, lower.tail = F)
+pchisq(20.646, df=29, lower.tail = F)
+
+step_vs <- step(glm_vs, direction='backward')
+step_vs
+summary(step_vs)
+ls(glm_vs)
+str(glm_vs)
+
+anova(glm_vs, test='Chisq')
+
+# nnet
+
+library(nnet)
+nn_iris <- nnet(Species ~., data=iris, size=2, rang=.1, decay=5e-4, maxit=200)
+summary(nn_iris)
+
+install.packages('clusterGeneration')
+install.packages('scales')
+library(clusterGeneration)
+plot(nn_iris)
+# table(iris$Species, predict(nn_iris, iris, type='class'))
+
+install.packages('neuralnet')
+library(neuralnet)
+
+data("infert")
+head(infert)
+str(infert)
+summary(infert)
+boxplot(infert)
+
+# install.packages('scales')
+library(scales)
+library(tidyverse)
+colnames(infert)
+infert %>% select(-c('education', 'stratum', 'pooled.stratum'))-> infert_cont
+infert_cont$case
+
+net.infert <- neuralnet(case ~ age + parity + induced + spontaneous, data=infert, hidden=2, 
+          err.fct='ce', linear.output = F, likelihood = T)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
