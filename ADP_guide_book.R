@@ -658,26 +658,53 @@ infert_cont$case
 net.infert <- neuralnet(case ~ age + parity + induced + spontaneous, data=infert, hidden=2, 
           err.fct='ce', linear.output = F, likelihood = T)
 
+net.infert
+plot(net.infert)
 
+names(net.infert)
+net.infert$result.matrix
+net.infert$covariate
+net.infert$net.result[[1]]
 
+out <- cbind(net.infert$covariate, net.infert$net.result[[1]])
+dimnames(out) <- list(NULL, c('age', 'party', 'induced', 'spontaneous', 'nn-output'))
+head(out)
 
+head(net.infert$generalized.weights[[1]])
 
+par(mfrow=c(2,2))
+gwplot(net.infert, selected.covariate = 'age', min=-2.5, max=5)
+gwplot(net.infert, selected.covariate = 'parity', min=-2.5, max=5)
+gwplot(net.infert, selected.covariate = 'induced', min=-2.5, max=5)
+gwplot(net.infert, selected.covariate = 'spontaneous', min=-2.5, max=5)
 
+covariate_mat = matrix(c(22, 1, 0, 0, 22, 1, 1, 0, 22, 1, 0, 1, 22, 1, 1, 1),
+                 byrow=TRUE, ncol=4)
+covariate_mat
 
+new.output <- neuralnet :: compute(net.infert, covariate_mat) ## error
+new.output$net.result
 
+train.input <- as.data.frame(runif(50, min=0, max=100))
+train.output <- sqrt(train.input)
+train.data <- cbind(train.input, train.output)
+colnames(train.data) <- c('input','output')
+head(train.data)
 
+net.sqrt <- neuralnet(output ~ input, train.data, hidden=10, threshold=.01)
+print(net.sqrt)
+plot(net.sqrt)
 
+test.data <- as.data.frame((1:10)^2)
+test.out <- neuralnet :: compute(net.sqrt, test.data)
+ls(test.out)
+print(test.out$net.result)
 
+net2.sqrt <- neuralnet(output ~ input, train.data, hidden=c(10, 8), threshold = .01)
+plot(net2.sqrt)
 
-
-
-
-
-
-
-
-
-
+test2.out <- neuralnet :: compute(net2.sqrt, test.data)
+print(test2.out$net.result)
 
 
 
