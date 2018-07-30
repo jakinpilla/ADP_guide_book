@@ -205,22 +205,110 @@ str(nn_pred)
 
 dt_pred <- predict(dt.iris, testData, type='class')
 
-install.packages('e1071')
+# install.packages('e1071')
+library(e1071)
 library(caret)
 nn_pred <- as.factor(nn_pred)
 str(testData$Species)
 nn_con = confusionMatrix(nn_pred, testData$Species)
+nn_con$table
+
+dt_con = confusionMatrix(dt_pred, testData$Species)
+dt_con
+dt_con$table
+
+nn_con$overall['Accuracy']
+dt_con$overall['Accuracy']
+
+nn_con$byClass['Sensitivity']
+dt_con$byClass['Sensitivity']
+
+accuracy <- c(nn_con$overall['Accuracy'], dt_con$overall['Accuracy'])
+precision <- c(nn_con$byClass['Pos Pred Value'], dt_con$byClass['Pos Pred Value'])
+recall <- c(nn_con$byClass['Sensitivity'], dt_con$byClass['Sensitivity'])
+f1 <- 2*(precision*recall) / (precision + recall)
+result <- data.frame(rbind(accuracy, precision, recall, f1))
+names(result) <- c('nnet', 'decision tree')
+result
+
+data(infert)
+head(infert)
+# parity : the number of times a female has given birth
+# case :case status (1 : case, 0 :controlled)
+# stratum : ??
+# pooled.stratum : ??
+tail(infert)
+
+# ROC graph
+set.seed(42)
+infert <- infert[sample(nrow(infert)), ] # suffling
+infert <- infert[, c('age', 'parity', 'induced', 'spontaneous', 'case')]
+head(infert)
+nrow(infert)
+
+trainData <- infert[1:(nrow(infert)*.7), ]
+testData <- infert[((nrow(infert)*.7 + 1) : nrow(infert)), ]
+nrow(trainData)
+nrow(testData)
+
+# neural network
+library(neuralnet)
+net.infert <- neuralnet(case ~ age+parity+induced+spontaneous, data=trainData, hidden=3, 
+                        err.fct='ce', linear.output=F, likelihood=T)
+
+n_test <- subset(testData, select=-case)
+
+nn_pred <- neuralnet::compute(net.infert, n_test)
+testData$net_pred <- nn_pred$net.result
+head(testData)
+
+# decison tree
+# install.packages('C50')
+library(C50)
+trainData$case <- factor(trainData$case)
+dt.infert <- C50::C5.0(case ~ age + parity + induced + spontaneous, data=trainData)
+testData$dt_pred <- predict(dt.infert, testData, type='prob')[, 2]
+
+head(testData)
+
+# install.packages('Epi')
+library(Epi)
+neural_ROC <- ROC(form=case ~ net_pred, data = testData, plot='ROC')
+dtree_ROC <- ROC(form=case ~ dt_pred, data = testData, plot='ROC')
 
 
+head(testData)
+# net_pred가 높은 순으로 정렬
+gain_tbl <- testData[order(testData$net_pred, decreasing = T), ][, c('case', 'net_pred')]
+head(gain_tbl, 10)
+str(gain_tbl)
+gain_tbl$net_pred <- as.numeric(gain_tbl$net_pred)
 
+gain_tbl %>% 
+  select(case, net_pred) %>%
+  mutate(group = cut(net_pred, 
+                     breaks = seq(0, 1, .1),
+                     include.lowest = T, # 0을 그룹에 포함시키기 위해 반드시 필요, 아니면 NA값 반환됨.
+                     labels=c('0-10', '10-20', '20-30', '30-40', '40-50',
+                              '50-60', '60-70', '70-80', '80-90', '90-100')))
 
+nrow(testData) # 74
+nrow(subset(testData, testData$case == 1)) # 28
+quanted <- quantile(gain_tbl$net_pred, seq(0,1,.1))
+str(quanted)
+quanted['90%']
+unname(quanted['90%'])
 
+transformed <- transform(gain_tbl, 
+                         group=cut(net_pred, breaks = quanted, include.lowest = T,
+                                   labels=c('0-10', '10-20', '20-30', '30-40', '40-50',
+                                            '50-60', '60-70', '70-80', '80-90', '90-100')))
 
+str(transformed)
+transformed %>% group_by(group) %>% summarise(sum.case=sum(case)) %>% arrange(desc(group))
 
-
-
-
-
+# base lift
+28/74
 
 
 
