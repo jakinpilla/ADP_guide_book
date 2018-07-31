@@ -276,6 +276,7 @@ library(Epi)
 neural_ROC <- ROC(form=case ~ net_pred, data = testData, plot='ROC')
 dtree_ROC <- ROC(form=case ~ dt_pred, data = testData, plot='ROC')
 
+## 이익도표에 대한 생각
 
 head(testData)
 # net_pred가 높은 순으로 정렬
@@ -310,17 +311,21 @@ transformed %>% group_by(group) %>% summarise(sum.case=sum(case)) %>% arrange(de
 # base lift
 28/74
 
-
-
-
-
-
-
-
-
-
-
-
+install.packages('ROCR')
+library(ROCR)
+str(testData)
+testData$net_pred <- as.numeric(testData$net_pred )
+n_r <- prediction(testData$net_pred, testData$case)
+d_r <- prediction(testData$dt_pred, testData$case)
+n_p <- performance(n_r, 'tpr', 'fpr')
+d_p <- performance(d_r, 'tpr', 'fpr')
+plot(n_p, col='red')
+par(new=T)
+plot(d_p, col='blue')
+abline(a=0, b=1)
+n_lift <- performance(n_r, 'lift', 'rpp')
+plot(n_lift, col='red')
+abline(v=.2)
 
 
 
