@@ -15,6 +15,7 @@ groups <- cutree(fit, k=6)
 groups
 
 plot(fit)
+
 rect.hclust(fit, k=6, border='red')
 
 hca <- hclust(dist(USArrests))
@@ -80,5 +81,103 @@ fit.km$centers
 plot(df, col=fit.km$cluster)
 points(fit.km$center, col=1:3, pch=8, cex=1.5)
 
+aggregate(wine[-1], by=list(cluster=fit.km$cluster), mean)
+
+ct.tm <- table(wine$Type, fit.km$cluster)
+ct.tm
+
+# install.packages('flexclust')
+library(flexclust)
+randIndex(ct.tm)
+
+data("Nclus")
+plot(Nclus)
+
+cl <- kcca(Nclus, k=4, family=kccaFamily('kmeans'))
+image(cl)
+points(Nclus)
+barplot(cl)
+stripes(cl)
+
+# install.packages('cclust')
+library(cclust)
+cl.1 <- cclust(Nclus, 4, 20, method='kmeans')
+plot(Nclus, col=cl.1$cluster)
+points(cl.1$center, col=1:4, pch=8, cex=1.5)
+
+library(cluster)
+clusplot(Nclus, cl.1$cluster)
+
+# mixture distribution clustering
+# install.packages('mixtools')
+library(mixtools)
+data("faithful")
+attach(faithful)
+
+hist(waiting, main='Time between Old Faithful erruptions', xlab='Minutes', ylab='', 
+     cex.main=1.5, cex.lab=1.5, cex.axis=1.4)
+
+wait1 <- normalmixEM(waiting, lambda=.5, mu=c(55, 80), sigma=5)
+summary(wait1)
+
+plot(wait1, density=T, cex.axis=1.4, cex.main=1.8, 
+     main2='Time between Old Faithful eruptions', xlab2='Minutes')
+
+# install.packages('mclust')
+library(mclust)
+mc <- Mclust(iris[, 1:4], G=3)
+summary(mc, parameters=T)
+
+plot.Mclust(mc)
+str(mc)
+mc$classification
+predict(mc, data=)
+
+# SOM
+# install.packages('kohonen')
+packageurl <- "https://cran.r-project.org/src/contrib/Archive/kohonen/kohonen_2.0.19.tar.gz"
+install.packages(packageurl, repos = NULL, type = "source")
+
+require(kohonen)
+require(RColorBrewer)
+library(RCurl)
+NBA <- read.csv(text = getURL("https://raw.githubusercontent.com/clarkdatalabs/soms/master/NBA_2016_player_stats_cleaned.csv"), 
+                sep = ",", header = T, check.names = FALSE)
+
+colnames(NBA)
+NBA.measures1 <- c("FTA", "2PA", "3PA")
+NBA.SOM1 <- som(scale(NBA[NBA.measures1]), grid = somgrid(6, 4, "rectangular"))
+plot(NBA.SOM1)
+
+colors <- function(n, alpha = 1) {
+  rev(heat.colors(n, alpha))
+}
+
+plot(NBA.SOM1, type = "counts", palette.name = colors, heatkey = TRUE)
+
+par(mfrow = c(1, 2))
+plot(NBA.SOM1, type = "mapping", pchs = 20, main = "Mapping Type SOM")
+plot(NBA.SOM1, main = "Default SOM Plot")
+# error occur
+# NBA.SOM2 <-som(scale(NBA[NBA.measures1]), 
+#                grid=somgrid(6, 6, 'hexagonal'), 
+#                toroidal=T)
 
 
+# install.packages('arules')
+library(arules)
+data(Adult)
+Adult
+
+rules <- apriori(Adult)
+inspect(head(rules))
+adult.rules <- apriori(Adult, parameter=list(support=.1, confidence=.6),
+                       appearance = list(rhs=c('income=small', 'income=large'), default='lhs'),
+                       control = list(verbose=F))
+adult.rules.sorted <- sort(adult.rules, by='lift')
+inspect(head(adult.rules.sorted))
+
+# install.packages('arulesViz')
+library(arulesViz)
+plot(adult.rules.sorted, method='scatterplot')
+plot(adult.rules.sorted, method='graph', control=list(type='items', alpha=.5))
