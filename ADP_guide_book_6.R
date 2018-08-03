@@ -1,4 +1,5 @@
 options(repos=c(RStudio='http://rstudio.org/_packages', getOption('repos')))
+setwd('C:/Users/dsc/adp_guidebook/shiny')
 
 install.packages('shiny')
 library(shiny)
