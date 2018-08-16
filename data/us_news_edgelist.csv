@@ -1,0 +1,24 @@
+from,to
+NYTimes,BBC
+NYTimes,CNN
+NYTimes,AOL
+CNN,Google News
+CNN,NewYork Post
+Wall Street Journal,FOX News
+FOX News,NYTimes
+FOX News,BBC
+Yahoo News,AOL
+ABC,CNN
+ABC,NewYork Post
+NewYork Post,AOL
+NYTimes,USA Today
+MSNBC,ABC
+LATimes,ABC
+NYTimes,Washington Post
+Daily News,MSNBC
+Chicago Tribune,AOL
+AOL,Fox News
+Wall Street Journal,NYTimes
+Wall Street Journal,ABC
+Wall Street Journal,Daily News
+USA Today,Wall Street Journal
