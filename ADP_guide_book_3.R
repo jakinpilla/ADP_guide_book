@@ -1,5 +1,9 @@
 setwd("C:/Users/dsc/adp_guidebook")
+<<<<<<< HEAD
 setwd("C:/Users/jooyon/Desktop/ADP_guide_book-master/ADP_guide_book-master")
+=======
+
+>>>>>>> 8fd86b1d3a9831817b74a15995864930150cd3c1
 data("USArrests")
 str(USArrests)
 
@@ -49,8 +53,11 @@ wssplot <- function(data, nc=15, seed=1234){
 # install.packages('rattle')
 url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data"
 wine <- read.csv(url, header=FALSE)
+<<<<<<< HEAD
 wine <- read.csv("./data/wine.csv", header=T)
 head(wine)
+=======
+>>>>>>> 8fd86b1d3a9831817b74a15995864930150cd3c1
 colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash',
                     'Alcalinity', 'Magnesium', 'Phenols',
                     'Flavanoids', 'Nonflavanoids',
@@ -60,9 +67,14 @@ colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash',
 wine$Type <- as.factor(wine$Type)
 head(wine)
 write.csv(wine, './data/wine.csv')
+<<<<<<< HEAD
 head(wine[, -c(1,2)])
 df <- scale(wine[, -c(1,2)])
 head(df)
+=======
+
+df <- scale(wine[-1])
+>>>>>>> 8fd86b1d3a9831817b74a15995864930150cd3c1
 wssplot(df)
 
 # install.packages('NbClust')
@@ -76,8 +88,11 @@ barplot(table(nc$Best.n[1,]),
         xlab='Number of Clusters', ylab='Number of Criteria', 
         main='Number of Clusers Chosen by 26 Criteria')
 
+<<<<<<< HEAD
 # we choose the best cluster number as 3
 
+=======
+>>>>>>> 8fd86b1d3a9831817b74a15995864930150cd3c1
 set.seed(1234)
 fit.km <- kmeans(df,3, nstart=25)
 fit.km$size
@@ -86,8 +101,11 @@ fit.km$centers
 plot(df, col=fit.km$cluster)
 points(fit.km$center, col=1:3, pch=8, cex=1.5)
 
+<<<<<<< HEAD
 # Alchole (x-axis), Malic (y-axis) plot...why??
 
+=======
+>>>>>>> 8fd86b1d3a9831817b74a15995864930150cd3c1
 aggregate(wine[-1], by=list(cluster=fit.km$cluster), mean)
 
 ct.tm <- table(wine$Type, fit.km$cluster)
@@ -138,7 +156,11 @@ summary(mc, parameters=T)
 plot.Mclust(mc)
 str(mc)
 mc$classification
+<<<<<<< HEAD
 predict(mc, data=) # 'data='ÀÇ ÀÇ¹Ì??
+=======
+predict(mc, data=)
+>>>>>>> 8fd86b1d3a9831817b74a15995864930150cd3c1
 
 # SOM
 # install.packages('kohonen')
@@ -147,8 +169,11 @@ install.packages(packageurl, repos = NULL, type = "source")
 
 require(kohonen)
 require(RColorBrewer)
+<<<<<<< HEAD
 
 # install.packages('RCurl')
+=======
+>>>>>>> 8fd86b1d3a9831817b74a15995864930150cd3c1
 library(RCurl)
 NBA <- read.csv(text = getURL("https://raw.githubusercontent.com/clarkdatalabs/soms/master/NBA_2016_player_stats_cleaned.csv"), 
                 sep = ",", header = T, check.names = FALSE)
@@ -176,7 +201,11 @@ plot(NBA.SOM1, main = "Default SOM Plot")
 # install.packages('arules')
 library(arules)
 data(Adult)
+<<<<<<< HEAD
 head(Adult)
+=======
+Adult
+>>>>>>> 8fd86b1d3a9831817b74a15995864930150cd3c1
 
 rules <- apriori(Adult)
 inspect(head(rules))
