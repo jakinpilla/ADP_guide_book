@@ -210,6 +210,66 @@ Analytics / IT / 비즈니스 분석
     - CustomerId가 파티셔닝 키가 되고 파티셔닝 대상은 켄테이너가 됨
 
 
+2_2_2_1 : MapReduce
+ - Map Task 하나가 1개의 블록을 대상으로 연산 수행
+ - Map -- (Key, Value 리스트) -- Reduce
+ - 정렬 같은 양이 줄지 않는 작업에는 부적합
+ - 폴트롤러런스
+ - 하둡 MapReduce : 네임노드, 데이터노드, JobTracker, TaskTracker
+ - sort, 플랫폼 자체 성능 및 확장성 측정에 대한 좋은 실험
+
+2_2_2_2 : 병렬 쿼리 시스템
+ - 구글 Sawwzall
+ - Pig : Map의 Output이 또 다른 Map의 Input으로 들어가야하고 Reduce의 Output이 다른 Map의 Input으로 
+   들어가야하는 Chaining
+ - 아파치 하이브 : Facebook 데이터 웨어하우스 인프라
+ - 하이브 아키텍쳐
+   - MetaStore
+   - Embedded Derby
+   - Execution Engine : 하둡의 JobTracker와 네임노드와 통신을 담당하는 창구
+   - SerDe : 하둡의 InputFormat과 OutputFormat에 해당
+ - DDL : Create Table, Drop Table, Rename Table, Alter Table, Add Column, Show Table, Describe Table
+ - DML : Load data, 쿼리결과를 테이블이나 로컬 파일시스템, DFS에 저장
+ - Query : Select, Group by, Sort by, Joins, Union, Sub Queries, Sampliing, Transform
+
+2_2_2_3 : SQL on Hadoop
+ - 임팔라 : 하둡과 Hbase에 저장된 데이터를 대상으로 SQL 질의 가능
+ - 임팔라 데몬, JDBC나 ODBC 또는 임팔라셸을 이용하여 질의 요청 가능
+ - DDL : Create Table, Drop Table, Rename Table, Alter Table, Add Column, Show Table, Describe Table
+ - DML : Select, Wherem Groupby, OrderBy / 데이터변경 구문은 지원 안함 / Delete 지원 안 함
+ - 내장함수 : 수학함수, 타입변환, 조건문, 문자열함수 등
+ - 로우단위로 저장시 테이블에서 하나의 컬럼을 읽든 전체 테이블을 읽든 동일한 디스크 입출력이 발생
+ - 컬럼단위 : 처리 성능 개선 가능
+
+2_2_3 : 클라우드 인프라 기술
+ - 인텔, AMD 등과 같은 CPU 제공업체는 하드웨어 차원의 CPU 가상화를 주로 다루며, VMware나 MS 등에서는 
+   소프트웨어 기반의 가상화 제품을 내놓음
+ - 가상머신 사이의 데이터보호, 예측하지 못한 장애로부터 보호, 공유자원에 대한 강제 사용의 거부, 서버통합,
+   자원할당에 대한 증가된 유연성, 테스팅, 정확하고 안전한 서버 사이징, 시스템 관리
+
+ - CPU 가상화
+   - 하이퍼바이저 : 가상머신
+   - 하드웨어 환경 에물레이션, 실행환경 격리, 시스템 자원 할당, 소프트웨어 스택 보존
+   - 물리적인 하드웨어와 호스트 운영체제와의 관계 : 베어메탈, 호스트기반
+   - 베어메탈 : 하드웨어와 호스트 운영체제 사이 --> 반가상화 및 완전가상화로 나뉨
+   - 호스트 기반 하이퍼바이저 : 호스트 운영체제와 게스트 운영체제 사이
+   - x86 아키텍펴의 가상화 기술의 핵심은 가상머신이 요청하는 previleged 명령어를 어떻게, 어떤 계층에서 처리하는가 임. 
+   - 완전가상화, 반가상화라는 용어도 previleged 명령어를 어떻게 처리하느냐를 기준으로 분류
+   - 완전가상화는 하이퍼바이저보다 우선순위가 낮은 가상머신에서는 실행되지 않는 previleged 명령어에 대해서 trap을 발생시켜
+     하이퍼바이저에서 실행하는 방식으로 MS 윈도우와 같은 Guest OS가 하이퍼바이저 상에서 변경되지 않은 상태로 실행될 수
+     있는 장점이 있으나 Para Virtualization에 비해 속도가 느림
+   - 하드웨어 지원 완전가상화 : 하이퍼바이저는 Ring -1에서 수행, 가상머신의 운영체는 Ring 0에서 수행, previleged 명령어에
+     대해 추가 변환 과정 필요 없음
+   - 윈도우 2008 서버의 Hyper-V는 반드시 가상화 지원 CPU만 사용
+   - 하드웨어 지원 가상화를 사용하는 경우 CPU 사용률이 높아진다. 특히 I/O나 메모리를 많이 사용하는 경우 CPU 사용률이 높아짐
+   - 서버 통합을 목적으로 하는 경우 비효율적일 수 있음
+   - 반가상화는 previleged 명령어를 게스트 운영체제에서 hypercall로 하이퍼바이저에 전달하고 하이퍼바이저는 hypercall에 대해
+     previleged 레벨에 상관없이 하드웨어 명령을 실행하는 call을 말함
+   - 반가상화 기반에서는 CPU와 메모리 자원의 동적 변경이 서비스의 중단 없이 이루어질 수 있으며 완전가상화에 비해 성능이 뛰어남
+   - 반가상화는 커널을 변경해야 하고 완전가상화는 속도는 느리나 커널 변경이 없음.
+
+
+
 
 
 
