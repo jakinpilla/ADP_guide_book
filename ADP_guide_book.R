@@ -626,9 +626,12 @@ exp(coef(b)['Sepal.Length'])
 
 confint(b, param='Sepal.Length')
 # Sepal.Length   3.421613   7.41550
+# 회귀계수의 신뢰구간
+
 exp(confint(b, param='Sepal.Length'))
+# 오즈의 증가량에 대한 신뢰구간
+
 fitted(b)[c(1:5, 96:100)]
-a
 predict(b, newdata=a[c(1, 50, 51, 100), ], type='response')
 cdplot(Species~Sepal.Length, data=a)
 plot(a$Sepal.Length, a$Species, xlab = 'Sepal.Length')
@@ -641,6 +644,11 @@ glm_vs <- glm(vs ~ mpg + am, data=mtcars, family=binomial)
 summary(glm_vs)
 
 coef(glm_vs)
+# 다른 모든 변수들(여기서는 am)이 주어질때 mpg값이 한 단위 증가함에 따라 vs가
+# 1일 오즈가 exp(0.6809) ~ 1.98배 증가
+# mpg가 주어질때 오즈에 대한 am의 효과는 exp(-0.0073) ~ 0.05 배 즉, 
+# 변속기가 수동인 경우 자동에 비해 vs=1의 오즈가 95% 감소
+
 pchisq(43.860, df=31, lower.tail = F)
 pchisq(20.646, df=29, lower.tail = F)
 
@@ -651,6 +659,14 @@ ls(glm_vs)
 str(glm_vs)
 
 anova(glm_vs, test='Chisq')
+# 모형의 적합(변수가 추가되는) 단계별로 이탈도의 감소량과 유의성 검정 결과를 제시
+#      Df Deviance Resid. Df Resid. Dev  Pr(>Chi)    
+# NULL                    31     43.860              
+# mpg   1   18.327        30     25.533 1.861e-05 ***
+# am    1    4.887        29     20.646   0.02706 * 
+# p_value 모두 0.05 보다 작음
+# 그 결과, 두 변수가 차례로 추가되면서 생겨나는 이탈도의 감소량이 모두 통계적으로 유의
+
 
 # nnet
 
