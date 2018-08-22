@@ -674,13 +674,17 @@ library(nnet)
 nn_iris <- nnet(Species ~., data=iris, size=2, rang=.1, decay=5e-4, maxit=200)
 summary(nn_iris)
 
-install.packages('clusterGeneration')
-install.packages('scales')
+# install.packages('clusterGeneration')
+# install.packages('scales')
+# install.packages('reshape')
 library(clusterGeneration)
-plot(nn_iris)
-# table(iris$Species, predict(nn_iris, iris, type='class'))
+library(scales)
+library(reshape)
 
-install.packages('neuralnet')
+table(iris$Species, predict(nn_iris, iris, type='class'))
+
+# install.packages('neuralnet')
+
 library(neuralnet)
 
 data("infert")
@@ -689,8 +693,6 @@ str(infert)
 summary(infert)
 boxplot(infert)
 
-# install.packages('scales')
-library(scales)
 library(tidyverse)
 colnames(infert)
 infert %>% select(-c('education', 'stratum', 'pooled.stratum'))-> infert_cont
@@ -706,26 +708,52 @@ names(net.infert)
 net.infert$result.matrix
 net.infert$covariate
 net.infert$net.result[[1]]
-
+net.infert$generalized.weights
 out <- cbind(net.infert$covariate, net.infert$net.result[[1]])
 dimnames(out) <- list(NULL, c('age', 'party', 'induced', 'spontaneous', 'nn-output'))
 head(out)
-
+# generalized.weights가 제시하는 일반화 가중치는 각 공변량들의 효과를 나타내는 것
+# 로지스틱 회귀모형에서의 회귀계수와 유사하게 해석
+# 로지스틱회귀와는 달리 일반화가중치는 다른 모든 공변량에 의존하므로 각 자료점에서
+# 국소적인 기여도를 나타냄
+# 예를들어, 동일한 변수가 몇몇 관측치에 대해서는 양의 영향을 가지며, 또 다른 관측치에 대해서는
+# 양의 영향을 가지며, 또 다른 관측치에 대해서는 음의 영향을 가지며, 평균적으로는 0에 가까운 영향을
+# 갖는 것이 가능하다. 
+# 모든 자료에 대한 일반화가중치의 분포는 특정 공변향의 효과가 선형적인지의 여부를 나타냄
+# 즉, 작은 분산은 선형효과를 제시하며, 큰 분산은 관측치 공간상에서 변화가 심하다는 것을 
+# 나타내므로 비-선형적인 효과가 있음을 나타냄
 head(net.infert$generalized.weights[[1]])
 
+# 일반화가중치에 대한 시각화
 par(mfrow=c(2,2))
 gwplot(net.infert, selected.covariate = 'age', min=-2.5, max=5)
 gwplot(net.infert, selected.covariate = 'parity', min=-2.5, max=5)
 gwplot(net.infert, selected.covariate = 'induced', min=-2.5, max=5)
 gwplot(net.infert, selected.covariate = 'spontaneous', min=-2.5, max=5)
+par(mfrow=c(1,1))
+# 공변령 age는 모든 값이 0 근처의 값을 가지므로 사례-대조 상태에 따른 효과가 없으며,
+# 적어도 2개의 공변량 induced와 spontaneous는 일반화 가중치의 분산이 전반적으로 1보다 크기 때문에
+# 비선형 효과를 가짐. 모형의 단순화를 위해 age와 관련된 뉴런을 제외한 즉, 3개의 입력변수
+# parity, induced, spontaneous 만으로 신경망모형을 적합할 수 있음.
 
 covariate_mat = matrix(c(22, 1, 0, 0, 22, 1, 1, 0, 22, 1, 0, 1, 22, 1, 1, 1),
                  byrow=TRUE, ncol=4)
 covariate_mat
 
-new.output <- neuralnet :: compute(net.infert, covariate_mat) ## error
+new.output <- neuralnet :: compute(net.infert, covariate_mat) 
 new.output$net.result
 
+# [1,] 0.1498340673
+# [2,] 0.1960744827
+# [3,] 0.3095099949
+# [4,] 0.8531143148(spontaneous)
+# 사전 낙태의 수에 따라 예측 확률이 증가함을 의미
+
+# 시그모이드(sigmoid) 활성함수를 가지는 2개 층의 네트워크(1개 은닉층)는 임의의 의사결정 경계를
+# 모형화 할 수 있음
+
+# 0과 100 사이의 난수를 50개 발생시키고, 제곱근을 취한 값을 결과로 하는 자료를 구축 후 자료를 신경망으로
+# 학습하여 새로운 예측을 수행
 train.input <- as.data.frame(runif(50, min=0, max=100))
 train.output <- sqrt(train.input)
 train.data <- cbind(train.input, train.output)
@@ -733,6 +761,8 @@ colnames(train.data) <- c('input','output')
 head(train.data)
 
 net.sqrt <- neuralnet(output ~ input, train.data, hidden=10, threshold=.01)
+# threshold = 옵션은 오차함수의 편미분에 대한 값으로 정지규칙으로 사용됨
+
 print(net.sqrt)
 plot(net.sqrt)
 
@@ -746,6 +776,9 @@ plot(net2.sqrt)
 
 test2.out <- neuralnet :: compute(net2.sqrt, test.data)
 print(test2.out$net.result)
+
+# 신경망 모형의 장점 :: 입,출력 변수간에 복잡한 비선형관계가 존재할 때 유용하며, 잡음에 대해서도
+# 민감하게 반응하지 않음
 
 
 
