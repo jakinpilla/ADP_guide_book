@@ -1,5 +1,4 @@
-setwd('C:/Users/dsc/adp_guidebook/shiny/downloading_files')
-
+setwd('C:/Users/Daniel/ADP_guide_book/shiny/downloading_files')
 library(shiny)
 
 shinyUI(pageWithSidebar(
@@ -14,3 +13,4 @@ shinyUI(pageWithSidebar(
     tableOutput('table')
   )
 ))
+
