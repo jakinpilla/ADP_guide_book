@@ -112,6 +112,14 @@ points(fit.km$center, col=1:3, pch=8, cex=1.5)
 
 # 각 군집별로 변수의 요약값을 측정단위의 척도로 나타냄
 aggregate(wine[-1], by=list(cluster=fit.km$cluster), mean)
+fit.km$cluster
+
+wine %>%
+  mutate(cluster = fit.km$cluster) %>%
+  select(-Type) %>%
+  as_tibble() %>%
+  group_by(cluster) %>%
+  summarise_all(list(~mean(.)))
 
 ct.tm <- table(wine$Type, fit.km$cluster)
 ct.tm
