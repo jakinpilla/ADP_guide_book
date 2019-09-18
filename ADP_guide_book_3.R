@@ -1,7 +1,4 @@
-setwd("C:/Users/dsc/adp_guidebook")
-
-setwd("C:/Users/jooyon/Desktop/ADP_guide_book-master/ADP_guide_book-master")
-
+setwd("~/ADP_guide_book")
 # clustering :: 계층적군집, 분리군집, 밀도기반군집, 모형기반군집, 격자기반군집, 커널기반군집, SOM
 # 최단연결법(단일연결법), 최장연결법(완전연결법), 중심연결법, 평균연결법, 와드연결법
 # 와드연결법 :: 군집 내 오차제곱합에 기초하여 군집 수행, 보통 두 군집이 합해지면 병합된 군집의 오차제곱합은
@@ -19,7 +16,7 @@ data("USArrests")
 str(USArrests)
 
 d <- dist(USArrests, method='euclidean')
-fit <- hclust(d, method='ave')
+fit <- hclust(d, method='ave') # 평균연결법
 
 par(mfrow=c(1,2))
 plot(fit)
@@ -32,6 +29,7 @@ groups
 plot(fit)
 
 rect.hclust(fit, k=6, border='red')
+
 
 hca <- hclust(dist(USArrests))
 plot(hca)
@@ -72,6 +70,8 @@ wssplot <- function(data, nc=15, seed=1234){
 
 # install.packages('rattle')
 url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data"
+wine <- read.csv(url)
+
 head(wine)
 colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash',
                     'Alcalinity', 'Magnesium', 'Phenols',
@@ -81,6 +81,7 @@ colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash',
 
 wine$Type <- as.factor(wine$Type)
 head(wine)
+
 write.csv(wine, './data/wine.csv')
 df <- scale(wine[-1])
 head(df)

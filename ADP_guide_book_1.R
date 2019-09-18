@@ -1,15 +1,15 @@
 getwd()
-setwd("C:/Users/dsc/adp_guidebook")
+par(mfrow=c(1,1))
 
 # install.packages('RODBC')
-library(RODBC)
-new <- odbcConnectExcel('./data/ie_data.xls')
+# library(RODBC)
+# new <- odbcConnectExcel('./data/ie_data.xls')
 
 # odbcConnectExcel is only usable with 32-bit Windows
-new
+# new
 
-mydata <- sqlFetch(new, 'Data')
-head(mydata, 10)
+# mydata <- sqlFetch(new, 'Data')
+# head(mydata, 10)
 
 rep(1, 3)
 seq(1, 3)
@@ -172,12 +172,12 @@ runif(9,0,20)
 set.seed(1)
 d = data.frame(year=rep(2012:2014, each=6), count=round(runif(9, 0, 20)))
 d
-ddply(d, 'year', function(x) {
-  mean.count = mean(x$count)
-  sd.count = sd(x$count)
-  cv = sd.count/mean.count
-  data.frame(cv.count=cv)
-})
+# ddply(d, 'year', function(x) {
+#   mean.count = mean(x$count)
+#   sd.count = sd(x$count)
+#   cv = sd.count/mean.count
+#   data.frame(cv.count=cv)
+# })
 
 head(d)
 str(d)
@@ -189,10 +189,10 @@ d %>% group_by(year) %>% summarise(sum.count=sum(count))
 iris %>% group_by(Species) %>% summarise(mean.Sepal.Length=mean(Sepal.Length))
 mtcars %>% group_by(cyl, gear) %>% summarise(newvar = sum(wt))
 
-ddply(d, 'year', summarise, mean.count=mean(count))
+# ddply(d, 'year', summarise, mean.count=mean(count))
 d %>% group_by(year) %>%  summarise(mean.count = mean(count))
 
-ddply(d, 'year', transform, total.count = sum(count))
+# ddply(d, 'year', transform, total.count = sum(count))
 d %>% group_by(year) %>% transform(total.count = sum(count))
 
 # data.table
@@ -347,12 +347,6 @@ ChickWeight %>% filter((Chick == 1) & (Diet == 1)) -> Chick
 lm(weight ~ Time, Chick) -> lm_chick
 summary(lm_chick)
 
-head(cars)
-cars$speed2 <- cars$speed^2
-head(cars)
-cars[, c(3,1,2)] %>% head()
-lm(dist ~ speed + speed2, data=cars)
-summary(lm(dist ~ speed + speed2, data=cars))
 
 x <- c(1, 2, 3, 4, 5, 6, 7, 8, 9)
 y <- c(5, 3, 2, 3, 4, 6, 10, 12 ,18)
@@ -638,7 +632,6 @@ plot(a$Sepal.Length, a$Species, xlab = 'Sepal.Length')
 x = seq(min(a$Sepal.Length), max(a$Sepal.Length), .1)
 lines(x, 1+(1/(1+exp(-27.831 + 5.140*x))), type='l', col='red')
 
-attach(mtcars)
 str(mtcars)
 glm_vs <- glm(vs ~ mpg + am, data=mtcars, family=binomial)
 summary(glm_vs)
@@ -691,37 +684,50 @@ data("infert")
 head(infert)
 str(infert)
 summary(infert)
+par(mfrow=c(1,1))
 boxplot(infert)
 
 library(tidyverse)
 colnames(infert)
-infert %>% select(-c('education', 'stratum', 'pooled.stratum'))-> infert_cont
+
+infert %>% select(-education, -stratum, -pooled.stratum)-> infert_cont
+
 infert_cont$case
 
 net.infert <- neuralnet(case ~ age + parity + induced + spontaneous, data=infert, hidden=2, 
           err.fct='ce', linear.output = F, likelihood = T)
 
 net.infert
+
 plot(net.infert)
 
 names(net.infert)
+
 net.infert$result.matrix
+
 net.infert$covariate
+
 net.infert$net.result[[1]]
+
 net.infert$generalized.weights
+
 out <- cbind(net.infert$covariate, net.infert$net.result[[1]])
+
 dimnames(out) <- list(NULL, c('age', 'party', 'induced', 'spontaneous', 'nn-output'))
 head(out)
+
 # generalized.weights가 제시하는 일반화 가중치는 각 공변량들의 효과를 나타내는 것
 # 로지스틱 회귀모형에서의 회귀계수와 유사하게 해석
-# 로지스틱회귀와는 달리 일반화가중치는 다른 모든 공변량에 의존하므로 각 자료점에서
-# 국소적인 기여도를 나타냄
+
+# 로지스틱회귀와는 달리 일반화가중치는 다른 모든 공변량에 의존하므로 각 자료점에서 국소적인 기여도를 나타냄
 # 예를들어, 동일한 변수가 몇몇 관측치에 대해서는 양의 영향을 가지며, 또 다른 관측치에 대해서는
 # 양의 영향을 가지며, 또 다른 관측치에 대해서는 음의 영향을 가지며, 평균적으로는 0에 가까운 영향을
 # 갖는 것이 가능하다. 
+
 # 모든 자료에 대한 일반화가중치의 분포는 특정 공변향의 효과가 선형적인지의 여부를 나타냄
 # 즉, 작은 분산은 선형효과를 제시하며, 큰 분산은 관측치 공간상에서 변화가 심하다는 것을 
 # 나타내므로 비-선형적인 효과가 있음을 나타냄
+
 head(net.infert$generalized.weights[[1]])
 
 # 일반화가중치에 대한 시각화
@@ -754,11 +760,12 @@ new.output$net.result
 
 # 0과 100 사이의 난수를 50개 발생시키고, 제곱근을 취한 값을 결과로 하는 자료를 구축 후 자료를 신경망으로
 # 학습하여 새로운 예측을 수행
+
 train.input <- as.data.frame(runif(50, min=0, max=100))
 train.output <- sqrt(train.input)
 train.data <- cbind(train.input, train.output)
 colnames(train.data) <- c('input','output')
-head(train.data)
+head(train.data, 10)
 
 net.sqrt <- neuralnet(output ~ input, train.data, hidden=10, threshold=.01)
 # threshold = 옵션은 오차함수의 편미분에 대한 값으로 정지규칙으로 사용됨
@@ -767,10 +774,13 @@ print(net.sqrt)
 plot(net.sqrt)
 
 test.data <- as.data.frame((1:10)^2)
+test.data
+
 test.out <- neuralnet :: compute(net.sqrt, test.data)
 ls(test.out)
 print(test.out$net.result)
 
+##--
 net2.sqrt <- neuralnet(output ~ input, train.data, hidden=c(10, 8), threshold = .01)
 plot(net2.sqrt)
 

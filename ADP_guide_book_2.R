@@ -2,15 +2,18 @@ library(tidyverse)
 
 # decison tree
 library(rpart)
+
 c <- rpart(Species ~ ., data=iris)
 c
 plot(c, compress=T, margin = .3)
 text(c, cex=1.5)
 predict(c, newdata = iris, type='class')
-ㅗㄷㅁㅇpredict(c, newdata = iris, type='class')
+
+table(iris$Species, predict(c, newdata = iris, type='class'))
+
 # 지니지수, 엔트로피지수, F-통계량의 p_value
 # F-통계량은 일원배치법에서의 검정통계량으로 그 값이 클수록 오차의 변동에 비해 처리(treatment) 변동이 큼을 의미
-# 이는 자식노드 간 이질적임을 의미하므로 이 값이 커지는 방향(p-value 가 작아지는 방향)으로 가지분할을 수행ㅊ
+# 이는 자식노드 간 이질적임을 의미하므로 이 값이 커지는 방향(p-value 가 작아지는 방향)으로 가지분할을 수행한다.
 # 분산의 감소량(variance reduction)도 이 값이 최대화 되는 방향으로 가지분할을 수행
 
 # install.packages('rpart.plot')
@@ -27,6 +30,8 @@ text(prune.c, use.n=T)
 
 plotcp(c)
 
+# -------------------------------------------------------------------------
+
 # install.packages('party')
 library(party)
 data("stagec")
@@ -37,19 +42,41 @@ stagec2 <- subset(stagec1, !is.na(gleason))
 stagec3 <- subset(stagec2, !is.na(eet))
 str(stagec3)
 
-# train data와 test data를 7:3으로 나눔
+# train data와 test data를 8:2으로 나눔
 set.seed(1234)
 ind <- sample(2, nrow(stagec3), replace=T, prob=c(.7, .3))
 ind
+
 trainData <- stagec3[ind==1, ]
 testData <- stagec3[ind==2, ]
-tree <- ctree(ploidy ~., data=trainData)
+
+## --
+
+# ploidy : 배수성 / 정상
+
+# tetraploidy : an extremely rare chromosomal anomaly, polyploidy, when an affected individual has four copies of each chromosome, instead of two, resulting in total of 92 chromosomes in each cell. 
+
+library(rsample)
+?initial_split
+data_split <- initial_split(stagec3, .8)
+train_data <- training(data_split)
+test_data <- testing(data_split)
+
+train_data %>% dim()
+test_data %>% dim()
+
+tree <- ctree(ploidy ~., data=train_data)
 tree
 plot(tree)
 
-testPred = predict(tree, newdata=testData)
-testData %>% group_by(ploidy) %>% count()
-table(testPred, testData$ploidy)
+test_pred = predict(tree, newdata=test_data)
+test_data %>% group_by(ploidy) %>% count()
+table(test_pred, test_data$ploidy)
+
+
+# -------------------------------------------------------------------------
+
+# 동 알고리즘은 반응변수가 연속형인 경우, 의사결정나무(회귀나무)를 통한 예측을 수행한다.
 
 data("airquality")
 airq <- subset(airquality, !is.na(Ozone))
@@ -58,7 +85,7 @@ airct <- ctree(Ozone ~., data=airq)
 airct
 plot(airct)
 
-# 예측값은 최종 마디에 대한 자료들의 평균값
+# 예측값은 최종 마디에 대한 자료들의 평균값이다.
 head(predict(airct, data=airq))
 # Ozone
 # [1,] 18.47916667
@@ -79,20 +106,40 @@ mean((airq$Ozone - predict(airct))^2)
 # 로지스틱 회귀처럼 각 예측변수의 효과를 파악하기 곤란
 # 새로운 자료에 대한 예측 불안정
 
+# 고객 타겟팅, 고객들의 신용점수화, 캠페인 반응분석, 고객행동예측, 고객 세분화 등에 활용
+
+# 앙상블 -------------------------------------------------------------------------
+
+# Bagging...
 # install.packages('adabag')
 library(adabag)
 data(iris)
 iris.bagging <- bagging(Species ~., data=iris, mfinal=10)
 iris.bagging$importance
+
+# Petal.Length > Petal.Width > Sepal.Length > Sepal.Width...
+
 plot(iris.bagging$trees[[10]])
 text(iris.bagging$trees[[10]])
 
 pred <- predict(iris.bagging, newdata = iris)
+
 table(pred$class, iris[,5])
 
-# boosting
+# -------------------------------------------------------------------------
+
+# Boosting....
+# 부트스트랩 표본을 구성하는 재표본 과정에서 각 자료에 동일한 확률을 부여하는 것이
+# 아니라 분류가 잘못된 데이터에  더 큰 가중을 주어 표본을 추출한다. 부스팅에서는
+# 붓스트랩 표본을 추출하여 분류기를 만든 후 그 분류결과를 이용하여 각 데이터가 
+# 추출될 확률을 조정한 후 다음 붓스트랩 표본을 추출하는 과정을 반복한다.
+
 boo.adabag <- boosting(Species ~ ., data=iris, boos=T, mfinal=10)
+
 boo.adabag$importance
+
+# Petal.Length >  Petal.Width > Sepal.Length  > Sepal.Width
+
 plot(boo.adabag$trees[[10]])
 text(boo.adabag$trees[[10]])
 
@@ -103,22 +150,30 @@ tb
 error.rpart <- 1 - (sum(diag(tb))/sum(tb))
 error.rpart
 
+# -------------------------------------------------------------------------
+
 # install.packages('ada')
 library(ada)
-iris[iris$Species != 'setosa', ] -> iris # setosa 제외
-dim(iris)[1] -> n
+# iris[iris$Species != 'setosa', ] -> iris # setosa 제외
+
+iris %>% nrow()
+iris %>%
+  filter(Species %in% c('versicolor', 'virginica')) -> iris_1
+
+# dim(iris_1)[1] -> n
+nrow(iris_1) -> n 
 n
 
 
-iris[, 5][2:3]
-levels(iris[, 5])[2:3]
-as.factor(levels(iris[, 5])[2:3])
-as.numeric(iris[, 5]) - 1
-
-as.factor(levels(iris[, 5])[2:3])[as.numeric(iris[, 5]) - 1]
-iris[, 5] <- as.factor((levels(iris[, 5])[2:3])[as.numeric(iris[, 5]) - 1]) 
-
-str(iris) # factor 2 levels
+# iris_1[, 5][2:3]
+# levels(iris_1[, 5])[2:3]
+# as.factor(levels(iris_1[, 5])[2:3])
+# as.numeric(iris_1[, 5]) - 1
+# 
+# as.factor(levels(iris_1[, 5])[2:3])[as.numeric(iris_1[, 5]) - 1]
+# iris_1[, 5] <- as.factor((levels(iris_1[, 5])[2:3])[as.numeric(iris_1[, 5]) - 1]) 
+# 
+# str(iris_1) # factor 2 levels
 # 'data.frame':	100 obs. of  5 variables:
 # $ Sepal.Length: num  7 6.4 6.9 5.5 6.5 5.7 6.3 4.9 6.6 5.2 ...
 # $ Sepal.Width : num  3.2 3.2 3.1 2.3 2.8 2.8 3.3 2.4 2.9 2.7 ...
@@ -126,15 +181,27 @@ str(iris) # factor 2 levels
 # $ Petal.Width : num  1.4 1.5 1.5 1.3 1.5 1.3 1.6 1 1.3 1.4 ...
 # $ Species     : Factor w/ 2 levels "versicolor","virginica": 1 1 1 1 1 1 1 1 1 1 ...
 
+
+iris_1$Species <- factor(iris_1$Species, levels = c('versicolor', 'virginica'), labels = c(0, 1))
+
 # train index(tridx) and test index(teidx)
 tridx <- sample(1:n, floor(.6*n), FALSE) # 60% train indice
 teidx <- setdiff(1:n, tridx)
 
+library(rsample)
+
+data_split <- initial_split(iris_1, .6)
+train_data <- data_split %>% training 
+train_data %>% nrow()
+
+test_data <- data_split %>% testing
+test_data %>% nrow()
+
 # training
-gdis <- ada(Species ~., data=iris[tridx, ], iter=20, nu=1, type='discrete')
+gdis <- ada(Species ~., data=train_data, iter=20, nu=1, type='discrete')
 
 # predicting
-gdis <- addtest(gdis, iris[teidx, -5], iris[teidx, 5])
+gdis <- addtest(gdis, test_data[, -5], test_data[, 5])
 gdis
 
 # kappa plotting
@@ -146,7 +213,8 @@ plot(gdis, T, T)
 # kappa = (Pa - Pc) / (1 - Pc)
 
 varplot(gdis)
-pairs(gdis, iris[tridx, -5], maxvar=4)
+
+pairs(gdis, test_data[, -5], maxvar=4)
 
 # RandomForest
 # install.packages('randomForest')
@@ -158,6 +226,10 @@ head(stagec)
 dim(stagec)
 str(stagec)
 
+# Random Forest-------------------------------------------------------------------------
+
+# 새로운 자료에 대한 예측은 분류의 경우는 다수결로, 회귀의 경우에는 평균을 취하는 방법을 사요
+
 # remove NA
 stagec3 <- stagec[complete.cases(stagec), ]
 dim(stagec3) # 146 -> 134
@@ -168,12 +240,22 @@ str(ind)
 length(ind[ind==1])
 length(ind[ind==2])
 
-trainData <- stagec3[ind==1, ]
-testData <- stagec3[ind==2, ]
+library(rsample)
+initial_split(stagec3, .7) -> data_split
+
+data_split %>% training() -> trainData
+data_split %>% testing() -> testData
+
+# install.packages('randomForest')
+library(randomForest)
 rf <- randomForest(ploidy ~., data=trainData, ntree=100, proximity=T)
+
 table(predict(rf), trainData$ploidy)
+
 print(rf)
 plot(rf)
+
+
 # 오류율에 대한 OOB(out-of-bag) 추정치 제공(3.92%)
 # 랜덤포레스트에서는 별도의 검증용 데이터를 사용하지 않더라도 붓스트랩 샘플과정에서 제외된 자료를
 # 사용하여 검증 실시 가능
@@ -183,7 +265,14 @@ varImpPlot(rf)
 
 rf.pred <- predict(rf, newdata=testData)
 table(rf.pred, testData$ploidy)
+
+# 훈련용 자료값의 마진: 마진은 랜덤포레스트 분류기 가운데 정분류를 수행한 비율에서
+# 다른 클래스로 분류한 비율의 최대치를 뺀 값을 나타낸다. 즉, 양의 마진은 정확한 분류를 
+# 의미하며 음은 그 반대이다.
+
 plot(margin(rf))
+
+# -------------------------------------------------------------------------
 
 library(party)
 set.seed(1234)
@@ -191,7 +280,7 @@ cf <- cforest(ploidy ~., data=trainData)
 cf.pred <- predict(cf, newdata=testData, OOB=T, type='response')
 table(cf.pred, testData$ploidy)
 
-# 모형평가 방법 : 홀드아웃, 교차검증, 붓스트램
+# 모형평가 방법 : 홀드아웃, 교차검증, 붓스트램-----------------------------
 
 # Holdout
 data(iris)
@@ -283,6 +372,9 @@ result <- data.frame(rbind(accuracy, precision, recall, f1))
 names(result) <- c('nnet', 'decision tree')
 result
 
+
+# -------------------------------------------------------------------------
+
 data(infert)
 head(infert)
 # parity : the number of times a female has given birth
@@ -308,6 +400,19 @@ library(neuralnet)
 net.infert <- neuralnet(case ~ age+parity+induced+spontaneous, data=trainData, hidden=3, 
                         err.fct='ce', linear.output=F, likelihood=T)
 
+names(net.infert)
+
+net.infert$result.matrix
+
+# 모형 적합에 사용된 자료는 $covariater과 $response를 통해 확인 가능하다
+# 적합값은 $net.result에 제공된다.
+
+out <- cbind(net.infert$covariate, net.infert$net.result[[1]])
+out %>% dim()
+dimnames(out) <- list(NULL, c("age", "parity", "induced", "spontaneous", "nn-output"))
+
+head(out)
+
 n_test <- subset(testData, select=-case)
 
 nn_pred <- neuralnet::compute(net.infert, n_test)
@@ -324,13 +429,43 @@ testData$dt_pred <- predict(dt.infert, testData, type='prob')[, 2]
 head(testData)
 
 # install.packages('Epi')
-library(Epi)
-neural_ROC <- ROC(form=case ~ net_pred, data = testData, plot='ROC')
-dtree_ROC <- ROC(form=case ~ dt_pred, data = testData, plot='ROC')
+# library(Epi)
+
+# install.packages('cmprsk')
+# library(cmprsk)
+
+# neural_ROC <- ROC(form=case ~ net_pred, data = testData, plot='ROC')
+# dtree_ROC <- ROC(form=case ~ dt_pred, data = testData, plot='ROC')
+
+## ROC Curve...
+library(ROCR)
+nn_pred <- neuralnet::compute(net.infert, n_test)
+yhat_nn <- nn_pred$net.result
+y_obs <- testData$case
+
+pred_nn <- prediction(yhat_nn, y_obs)
+perf_nn <- performance(pred_nn, measure = 'tpr', x.measure = 'fpr')
+plot(perf_nn, col = 'green')
+abline(0, 1)
+
+
+yhat_dt <- predict(dt.infert, testData, type = 'prob')[, 2]
+pred_dt <- prediction(yhat_dt, y_obs)
+perf_dt <- performance(pred_dt, measure= 'tpr', x.measure = 'fpr')
+plot(perf_dt, col = 'red')
+abline(0, 1)
+
+
+plot(perf_nn, col = 'green')
+plot(perf_dt, add = T, col= 'red')
+abline(0, 1)
+
 
 ## 이익도표에 대한 생각
 
 head(testData)
+nrow(testData)
+
 # net_pred가 높은 순으로 정렬
 gain_tbl <- testData[order(testData$net_pred, decreasing = T), ][, c('case', 'net_pred')]
 head(gain_tbl, 10)
@@ -363,6 +498,8 @@ transformed %>% group_by(group) %>% summarise(sum.case=sum(case)) %>% arrange(de
 # base lift
 28/74
 
+
+
 # install.packages('ROCR')
 library(ROCR)
 str(testData)
@@ -378,6 +515,7 @@ abline(a=0, b=1)
 n_lift <- performance(n_r, 'lift', 'rpp')
 plot(n_lift, col='red')
 abline(v=.2)
+
 
 
 
