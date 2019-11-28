@@ -181,7 +181,12 @@ plot(wait1, density=T, cex.axis=1.4, cex.main=1.8,
      main2='Time between Old Faithful eruptions', xlab2='Minutes')
 
 # install.packages('mclust')
+
 library(mclust)
+data(iris)
+iris %>% nrow()
+iris[, 1:4] %>% nrow()
+
 mc <- Mclust(iris[, 1:4], G=3)
 summary(mc, parameters=T)
 
@@ -189,12 +194,31 @@ plot.Mclust(mc)
 str(mc)
 mc$classification
 
-predict(mc, data=) # 'data='?? ?ǹ???
+iris %>%
+  mutate(actual_mc = recode(Species, 'setosa' = 1, 'versicolor' = 2,  'virginica' = 3)) %>%
+  mutate(pred_mc= mc$classification) %>% 
+  as_tibble() -> iris_with_mc
+
+iris_with_mc$actual_mc <- as.factor(iris_with_mc$actual_mc)
+iris_with_mc$pred_mc <- as.factor(iris_with_mc$pred_mc)
+
+table(iris_with_mc$actual_mc, iris_with_mc$pred_mc)
+
+library(Metrics)
+actual <- iris_with_mc$actual_mc
+predicted <- iris_with_mc$pred_mc
+
+Metrics::accuracy(actual, predicted)
+Metrics::precision(actual, predicted) # category가 3이기 때문에 NA를 반환
+Metrics::recall(actual, predicted) # category가 3이기 때문에 NA를 반환
+
+predict(mc, data=iris[, 1:4]) # 'data='?? ?ǹ???
 
 # 혼합분포군집은 k-평균군집의 절차와 유사하나 확률분포를 도입하여 군집을 수행하는 모형-기반 군집 방법
-# 이상값 자ㄹ에 민감하므로 사전 조치 필요
+# 이상값에 민감하므로 사전 조치 필요
 
-# SOM
+
+# SOM ---------------------------------------------------------------------
 
 # 고차원의 데이터를 이해하기 쉬운 저차원의 뉴런으로 정렬하여 지도 형태로 형상화
 # 이러한 형상화는 입력 변수의 위치관계를 그대로 보존
