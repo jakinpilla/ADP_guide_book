@@ -145,18 +145,90 @@ names(airquality)
 aqm = melt(airquality, id=c('month', 'day'), na.rm=T)
 aqm
 
+library(tidyverse)
+airquality %>%
+  gather(variable, value, -c(month, day)) -> aqm
+
+
 a <- cast(aqm, day~month~variable)
 a
+
 b <- cast(aqm, month ~ variable, mean)
 b
-c <- cast(aqm, month ~. |variable, mean)
+
+aqm
+aqm %>%
+  group_by(month, variable) %>%
+  summarise(mean.value = mean(value, na.rm = T)) %>%
+  ungroup() %>%
+  spread(variable, mean.value)
+
+
+c <- cast(aqm, month ~. | variable, mean)
 c
+
+aqm %>%
+  group_by(month, variable) %>%
+  summarise(mean.value = mean(value, na.rm = T)) %>%
+  ungroup()
+
+
 d <- cast(aqm, month ~ variable, mean, margins=c('grand_row', 'grand_col'))
 d
+
+aqm %>%
+  group_by(month, variable) %>%
+  summarise(mean.value = mean(value, na.rm = T)) %>%
+  ungroup() %>%
+  spread(variable, mean.value) -> df_tmp
+
+df_tmp %>%
+  dplyr::select(-month) %>%
+  mutate(rowsum = rowSums(.)) %>%
+  bind_rows(colSums(.)) -> df_1
+
+
+df_tmp %>%
+  dplyr::select(month) %>%
+  mutate(month =  as.character(month)) %>%
+  bind_rows(
+    data.frame(month = c('all'))
+  ) -> df_2
+
+df_2 %>%
+  bind_cols(df_1)
+
+
+
 e <- cast(aqm, day ~ month, mean, subset=variable=='ozone')
 e
+
+aqm %>%
+  filter(variable == 'ozone') %>%
+  dplyr::select(-variable) %>%
+  spread(month, value)
+
+aqm %>%
+  filter(variable == 'ozone') %>%
+  dplyr::select(-variable) %>%
+  spread(day, value)
+
+
 f <- cast(aqm, month ~ variable, range)
 f
+  
+aqm %>%
+  na.omit() %>%
+  dplyr::select(-day) %>%
+  group_by(month, variable) %>%
+  summarise(Min = min(value),
+            Max = max(value)) %>%
+  gather(min_or_max, value, -(month:variable)) %>%
+  unite("var_min_or_max", c('variable', 'min_or_max')) %>%
+  spread(var_min_or_max, value)
+
+?unite
+
 # sqldf
 # install.packages('sqldf')
 library(sqldf)
@@ -233,7 +305,7 @@ head(ans1)
 head(DF,100)
 DT <- data.table(DF)
 setkey(DT,x,y)
-ss <- system.time(ans2 <- DT[J('R', 'h')]) # binary search
+ss <- system.time(ans2 <- DT[J('R','h')]) # binary search
 ss
 
 # bad case for using data.table, # 1.425 secs
@@ -272,20 +344,69 @@ head(freetrade)
 dim(freetrade)
 str(freetrade)
 
+par(mfrow = c(1, 1))
 a.out <- amelia(freetrade, m=5, ts='year', cs='country')
+
+a.out %>% str()
+
+
+par(mfrow = c(1, 1))
 hist(a.out$imputations[[3]]$tariff, col='gray', border='white')
+
 save(a.out, file = 'imputation.RData')
 write.amelia(obj=a.out, file.stem = 'outdata')
+
 missmap(a.out)
+
+freetrade$tariff <- a.out$imputations[[1]]$tariff
 
 freetrade$tariff <- a.out$imputations[[5]]$tariff
 missmap(freetrade)
 
+freetrade$fiveop <- a.out$imputations[[1]]$fiveop
+missmap(freetrade)
+
+?amelia
+
+
+# amelia test -------------------------------------------------------------
+
+library(caret)
+
+idx_1 <- createDataPartition(iris$Species, p = .1, list = F)[, 1]
+idx_2 <- createDataPartition(iris$Species, p = .1, list = F)[, 1]
+
+
+idx_1
+idx_2
+
+iris[idx_1, ]
+
+iris %>% 
+  rowid_to_column() %>%
+  mutate(Sepal.Length  = ifelse(rowid %in% idx_1, NA, Sepal.Length)) %>%
+  mutate(Petal.Length  = ifelse(rowid %in% idx_2, NA, Petal.Length)) -> iris_with_na
+
+missmap(iris_with_na)
+
+a_1.out <- amelia(iris_with_na, m=5, cs='Species')
+missmap(a_1.out)
+
+iris_with_na$Sepal.Length <- a_1.out$imputations[[1]]$Sepal.Length
+missmap(iris_with_na)
+
+iris_with_na$Petal.Length <- a_1.out$imputations[[1]]$Petal.Length
+missmap(iris_with_na)
+
+
 # ouliers
+par(mfrow = c(1, 1))
 x = rnorm(100)
 boxplot(x)
 x <- c(x, 19, 28, 30)
 outwidth = boxplot(x)
+
+# print outliers...
 outwidth$out
 
 # install.packages('outliers')
@@ -294,6 +415,15 @@ set.seed(1234)
 y = rnorm(100)
 outlier(y)
 outlier(y, opposite = T)
+
+dim(y) = c(20, 5)
+y
+
+outlier(y)
+outlier(y, opposite = T)
+
+boxplot(y)
+
 
 a=c(10,20,30)
 b=c(40,30,20)
@@ -448,6 +578,30 @@ test <- data.frame(korean, math, english, science)
 test
 rcorr(as.matrix(test), type='spearman')
 
+
+# -------------------------------------------------------------------------
+test %>%
+  mutate(person_id = c('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k')) -> test_df
+
+test_df %>%
+  dplyr::select(person_id, everything()) -> test_df
+
+dist_data <- dist(as.matrix(test))
+dist_data %>% as.matrix() -> dist_mat
+
+rownames(dist_mat) <- test_df$person_id
+colnames(dist_mat) <- test_df$person_id
+
+dist_mat
+
+loc_1 <- cmdscale(dist_mat)
+x <- loc_1[ ,1]
+y <- loc_1[ ,2]
+
+plot(x, y, type ='n')
+text(x, y, rownames(loc_1), cex = .8)
+abline(v = 0, h = 0)
+
 data(eurodist)
 eurodist      
 loc <- cmdscale(eurodist)
@@ -457,16 +611,25 @@ plot(x, y, type='n', main='eurodist')
 text(x, y, rownames(loc), cex=.8)
 abline(v=0, h=0)
 
+# -------------------------------------------------------------------------
+
 library(datasets)
 data(USArrests)
 head(USArrests)
 summary(USArrests)
 
 fit <- princomp(USArrests, cor=T)
+
 summary(fit)
 loadings(fit)
 fit$scores
+USArrests
+
+plot(fit)
+?plot.princomp
+
 biplot(fit)
+
 par(mfrow=c(1, 1))
 nm <- c('쇠고기라면', '해물라면', '얼큰라면', '떡라면', '짬뽕라면', '만두라면', '치즈라면', '된장라면', 
         '볶음라면', '김치라면')
@@ -489,6 +652,8 @@ summary(p1)
 predict(p1)
 biplot(p1)
 
+# -------------------------------------------------------------------------
+
 Price <- c(6,7,6,5,7,6,5,6,3,1,2,5,2,3,1,2)
 Software <- c(5,3,4,7,7,4,7,5,5,3,6,7,4,5,6,3)
 Aesthetics <- c(3,2,4,1,5,2,2,4,6,7,6,7,5,6,5,7)
@@ -500,7 +665,9 @@ head(data)
 
 pca <- princomp(data, cor=T)
 summary(pca)
-predict(pca)
+
+predict(pca) # pca$scores
+
 biplot(pca)
 head(data)
 
@@ -605,13 +772,13 @@ summary(b)
 
 pchisq(138.629, df=99, lower.tail = F)
 # [1] 0.005302078
+
 pchisq(64.211, df=98, lower.tail = F)
 # [1] 0.9966935
 # 통계적으로 유의함으로 적합결여를 의미
 # Null deviance에 비해 자유도 1 기준에 이탈도의 감소가 74.4 정도의 큰 감소를 보이며
 # pchisq(64.211, df=98, lower.tail = F) = 0.9966935 이므로 귀무가설리 기각되지 않으며
 # 적합된 관측값이 관측된 자료를 잘 적합하고 있다고 할 수 있음
-
 coef(b)
 exp(coef(b)['Sepal.Length'])
 # Sepal.Length 
@@ -625,18 +792,24 @@ confint(b, param='Sepal.Length')
 exp(confint(b, param='Sepal.Length'))
 # 오즈의 증가량에 대한 신뢰구간
 
+
 fitted(b)[c(1:5, 96:100)]
 predict(b, newdata=a[c(1, 50, 51, 100), ], type='response')
 cdplot(Species~Sepal.Length, data=a)
+
 plot(a$Sepal.Length, a$Species, xlab = 'Sepal.Length')
 x = seq(min(a$Sepal.Length), max(a$Sepal.Length), .1)
-lines(x, 1+(1/(1+exp(-27.831 + 5.140*x))), type='l', col='red')
+lines(x, 1+(1/(1+1/exp(-27.831 + 5.140*x))), type='l', col='red')
 
 str(mtcars)
 glm_vs <- glm(vs ~ mpg + am, data=mtcars, family=binomial)
 summary(glm_vs)
 
 coef(glm_vs)
+
+exp(0.68)
+exp(-3.00)
+
 # 다른 모든 변수들(여기서는 am)이 주어질때 mpg값이 한 단위 증가함에 따라 vs가
 # 1일 오즈가 exp(0.6809) ~ 1.98배 증가
 # mpg가 주어질때 오즈에 대한 am의 효과는 exp(-0.0073) ~ 0.05 배 즉, 
@@ -647,11 +820,24 @@ pchisq(20.646, df=29, lower.tail = F)
 
 step_vs <- step(glm_vs, direction='backward')
 step_vs
+
 summary(step_vs)
 ls(glm_vs)
 str(glm_vs)
+coef(glm_vs)
 
 anova(glm_vs, test='Chisq')
+
+
+glm_vs_full <- glm(vs ~ ., family = binomial, data = mtcars)
+step_vs_both <- step(glm_vs_full, direction = 'both')
+
+step_vs_both %>% summary()
+ls(step_vs_both)
+str(step_vs_both)
+
+anova(step_vs_both, test = 'Chisq')
+
 # 모형의 적합(변수가 추가되는) 단계별로 이탈도의 감소량과 유의성 검정 결과를 제시
 #      Df Deviance Resid. Df Resid. Dev  Pr(>Chi)    
 # NULL                    31     43.860              
@@ -666,6 +852,8 @@ anova(glm_vs, test='Chisq')
 library(nnet)
 nn_iris <- nnet(Species ~., data=iris, size=2, rang=.1, decay=5e-4, maxit=200)
 summary(nn_iris)
+
+?nnet
 
 # install.packages('clusterGeneration')
 # install.packages('scales')

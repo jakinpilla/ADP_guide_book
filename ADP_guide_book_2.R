@@ -30,6 +30,16 @@ text(prune.c, use.n=T)
 
 plotcp(c)
 
+# https://www.crocus.co.kr/1283 
+# Post-pruning
+# 먼저 tree 를 완전히 자라게 한 다음 Bottom-up 방식으로 tree 를 가지 치기하는 방식
+# Reduced Error Pruning:  가지치기를 시도해 보고  만일 generalization error가 개선 된다면 subtree를 단말 node 로 대치 함.
+# 
+# rpart 에서는 error 계산을 위하여 training data set으로 X(cross) validation한다.
+# 단말 node 의 class label은 node에서 다수를 차지하는 record의 class label로 정함. 
+# 이때 rpart 패키지에서는 cp값을 증가시켜가며 tree 크기를 감소시켜 x validation error(xerror)을 계산한다.
+# 이때 xerror이 최소로 하는 cp가 최적이다.
+
 # -------------------------------------------------------------------------
 
 # install.packages('party')
@@ -37,10 +47,17 @@ library(party)
 data("stagec")
 str(stagec)
 
+library(Amelia)
+missmap(stagec)
+
 stagec1 <- subset(stagec, !is.na(g2))
 stagec2 <- subset(stagec1, !is.na(gleason))
 stagec3 <- subset(stagec2, !is.na(eet))
 str(stagec3)
+nrow(stagec3)
+
+stagec4 <- na.omit(stagec)
+nrow(stagec4)
 
 # train data와 test data를 8:2으로 나눔
 set.seed(1234)
@@ -79,8 +96,16 @@ table(test_pred, test_data$ploidy)
 # 동 알고리즘은 반응변수가 연속형인 경우, 의사결정나무(회귀나무)를 통한 예측을 수행한다.
 
 data("airquality")
+Amelia::missmap(airquality)
+nrow(airquality)
+
 airq <- subset(airquality, !is.na(Ozone))
+nrow(airq)
 head(airq)
+
+airq2 <- na.omit(airquality)
+nrow(airq2)
+
 airct <- ctree(Ozone ~., data=airq)
 airct
 plot(airct)
@@ -96,8 +121,22 @@ head(predict(airct, data=airq))
 # [6,] 18.47916667
 
 # type='node'
-predict(airct, data=airq, type='node')
+yhat_ctree <- predict(airct, data=airq, type='node')
+yhat_ctree %>% table()
+df_1 <- yhat_ctree %>% table() %>% enframe()
+
+yhat_ctree_not_node <- predict(airct, data=airq) %>% round(2)
+yhat_ctree_not_node %>% table() 
+df_2 <- yhat_ctree_not_node %>% table() %>% enframe()
+
+df_2 %>% 
+  dplyr::rename(mean.value_per_node = name) -> df_3
+
+df_1 %>%
+  left_join(df_3)
+
 mean((airq$Ozone - predict(airct))^2)
+
 
 # 의사결정나무의 장단점
 # 유용한 입력변수의 파악과 예측변수간의 상호작용 및 비선형성을 고려하여 분석 수행
@@ -118,12 +157,11 @@ iris.bagging <- bagging(Species ~., data=iris, mfinal=10)
 iris.bagging$importance
 
 # Petal.Length > Petal.Width > Sepal.Length > Sepal.Width...
-
+par(mfrow = c(1, 1))
 plot(iris.bagging$trees[[10]])
 text(iris.bagging$trees[[10]])
 
 pred <- predict(iris.bagging, newdata = iris)
-
 table(pred$class, iris[,5])
 
 # -------------------------------------------------------------------------
@@ -135,7 +173,6 @@ table(pred$class, iris[,5])
 # 추출될 확률을 조정한 후 다음 붓스트랩 표본을 추출하는 과정을 반복한다.
 
 boo.adabag <- boosting(Species ~ ., data=iris, boos=T, mfinal=10)
-
 boo.adabag$importance
 
 # Petal.Length >  Petal.Width > Sepal.Length  > Sepal.Width
@@ -183,6 +220,7 @@ n
 
 
 iris_1$Species <- factor(iris_1$Species, levels = c('versicolor', 'virginica'), labels = c(0, 1))
+iris_1 %>% str()
 
 # train index(tridx) and test index(teidx)
 tridx <- sample(1:n, floor(.6*n), FALSE) # 60% train indice
@@ -193,9 +231,11 @@ library(rsample)
 data_split <- initial_split(iris_1, .6)
 train_data <- data_split %>% training 
 train_data %>% nrow()
+train_data$Species %>% table()
 
 test_data <- data_split %>% testing
 test_data %>% nrow()
+test_data$Species %>% table()
 
 # training
 gdis <- ada(Species ~., data=train_data, iter=20, nu=1, type='discrete')
@@ -205,6 +245,7 @@ gdis <- addtest(gdis, test_data[, -5], test_data[, 5])
 gdis
 
 # kappa plotting
+par(mfrow = c(1,1))
 plot(gdis, T, T)
 
 # kappa :: 두 관찰자 사이의 일치도 확인
@@ -213,8 +254,191 @@ plot(gdis, T, T)
 # kappa = (Pa - Pc) / (1 - Pc)
 
 varplot(gdis)
-
 pairs(gdis, test_data[, -5], maxvar=4)
+
+# apply ada method to breast cancer dataset...
+
+# loading data from my local mysql db...
+
+library(DBI)
+library(RMySQL)
+con <- dbConnect(
+  MySQL(),
+  user = "root", 
+  password = 'chr0n3!7!',
+  dbname = "breast_cancer",
+)
+
+data <- dbGetQuery(con, "select * from breast_cancer;")
+
+
+# breast cancer data EDA...
+
+data %>% glimpse()
+summary(data)
+
+data %>%
+  dplyr::select(-id, -row_names) %>%
+  mutate(class = recode(class, 
+                        'M'= 1,
+                        'B' = 0)) -> data_1
+
+data_1 %>% colnames()
+
+data_1 %>% dim()
+
+
+library(psych)
+# pairs.panels(data_1) # time consumming because of many columns...
+
+data_1 %>% 
+  dplyr::select(class, contains('mean_')) %>%
+  pairs.panels()
+
+
+data_1 %>% 
+  dplyr::select(class, contains('se_')) %>%
+  pairs.panels()
+
+
+data_1 %>% 
+  dplyr::select(class, contains('worst_')) %>%
+  pairs.panels()
+
+# which variables are correlated with the class variable?...
+
+cor(data_1) %>%
+  as_tibble() -> data_2
+
+data_2 %>%
+  mutate(row_name = colnames(.)) %>%
+  dplyr::select(row_name, everything()) -> data_3
+
+data_3 %>%
+  filter(row_name == 'class') %>%
+  gather(variable, value, -row_name) %>%
+  arrange(desc(value)) -> data_4
+  
+data_4$variable <- factor(data_4$variable, levels = rev(data_4$variable))
+data_4 %>% str()
+
+data_4 %>%
+  slice(-1) %>%
+  ggplot(aes(variable, value)) + geom_point() + coord_flip()
+
+# worst_concave_points, mean_perimeter, worst_area, mean_concavity....
+
+# data visualizing...
+
+data$class <- as.factor(data$class)
+
+library(gridExtra)
+
+data %>% 
+  dplyr::select(class, worst_concave_points) %>%
+  ggplot(aes(class, worst_concave_points, col = class)) +
+  geom_boxplot() +
+  geom_jitter(alpha = .5) +
+  scale_color_brewer(palette = "Set1") -> p1
+
+
+data %>% 
+  dplyr::select(class, mean_perimeter) %>%
+  ggplot(aes(class, mean_perimeter, col = class)) +
+  geom_boxplot() +
+  geom_jitter(alpha = .5) +
+  scale_color_brewer(palette = "Set1") -> p2
+
+
+data %>% 
+  ggplot(aes(worst_concave_points, mean_perimeter, col = class)) +
+  geom_point() +
+  scale_color_brewer(palette = "Set1") -> p3
+
+data_n <- data %>% count(class)
+
+data_n %>%
+  ggplot(aes(class, n, fill = class)) + geom_bar(stat = 'identity') +
+  scale_fill_brewer(palette = "Set1") -> p4
+
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+
+# data spliting to apply ada method...
+
+library(caret)
+
+train_idx <- createdata_1Partition(data_1$class, p = .8, list = F)[, 1]
+train_idx %>% length()
+
+test_idx <- setdiff(1:nrow(data_1_1), train_idx)
+test_idx %>% length()
+
+train_set <- data_1[train_idx, ]
+test_set <- data_1[test_idx, ]
+
+train_set %>% dim()
+test_set %>% dim()
+
+train_set %>% str()
+test_set %>% str()
+
+train_set$class <- factor(train_set$class, levels = c(0, 1), labels = c(0, 1))
+test_set$class <- factor(test_set$class, levels = c(0, 1), labels = c(0, 1))
+
+train_set %>% distinct(class)
+test_set %>% distinct(class)
+
+# modeling with ada...
+
+m <- ada(class ~., data=train_set, iter=20, nu=1)
+m
+
+
+# validation -------------------------------------------------------------------------
+addtest(m, test_set[, -1], test_set[, 1])
+
+yhat_ada <- predict(m, test_set[, -1], type = 'prob')[, 2]
+yobs <- test_set[, 1]
+
+library(ROCR)
+y_pred_ada <- prediction(yhat_ada, yobs)
+y_perf_ada <- performance(y_pred_ada, measure = 'tpr', x.measure = 'fpr')
+
+plot(y_perf_ada)
+abline(0, 1)
+
+performance(y_pred_ada, 'auc')@y.values[[1]]
+# 0.9850771
+
+test_set[, 1] %>% 
+  enframe() %>% mutate(y_hat = round(yhat_ada, 2)) # %>% View
+
+
+
+# -------------------------------------------------------------------------
+yobs <- test_set[, 1]
+m_ada_boost <- boosting(class ~ ., data=train_set, boos=T, mfinal=10)
+yhat_ada_boost_obs <- predict(m_ada_boost, test_set[, -1], type = 'prob')
+yhat_ada_boost <- yhat_ada_boost_obs$prob[, 2]
+
+y_pred_ada_boost <- prediction(yhat_ada_boost, yobs)
+y_perf_ada_boost <- performance(y_pred_ada_boost, measure = 'tpr', x.measure = 'fpr')
+
+plot(y_perf_ada_boost)
+abline(0, 1)
+
+performance(y_pred_ada_boost, 'auc')@y.values[[1]]
+# 0.9785379
+
+test_set[, 1] %>% 
+  enframe() %>% mutate(yhat_ada = round(yhat_ada, 2)) %>%
+  mutate(yhat_ada_boost = round(yhat_ada_boost, 2))
+
+
+plot(y_perf_ada)
+plot(y_perf_ada_boost, add = T, col = 'red')
+abline(0, 1)
+
 
 # RandomForest
 # install.packages('randomForest')
