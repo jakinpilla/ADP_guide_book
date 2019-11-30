@@ -1,0 +1,112 @@
+---
+title: "RF analysis with stagec data"
+output: rmarkdown::github_document
+---
+
+### Data loading...
+
+데이터를 불러온다.
+
+```{r, message=FALSE, warning=FALSE}
+library(randomForest)
+library(rpart)
+library(tidyverse)
+data(stagec)
+head(stagec)
+```
+
+### EDA and NA handling...
+데이터에 NA 값들이 보이므로 Amelia 패키지를 이용해 NA 값들의 분포를 시각화하고 이를 imputation 한다.
+
+```{r}
+summary(stagec)
+```
+
+`eet`, `ge`, `gleason` 컬럼에 NA 값들이 존재한다. `Amelia::missmap()` 함수를 이용해 이를 시각화해본다.
+
+```{r}
+library(Amelia)
+
+missmap(stagec)
+```
+
+imputating NA values with amelia package...
+`amelia()` 함수를 이용해 NA값을 대체한다.
+
+```{r}
+imp_stagec <- amelia(stagec, m = 5, cs = 'ploidy')
+```
+
+5번째 imputation 결과를 최종 데이터셋으로 선택한다.
+```{r}
+stagec_1 <- imp_stagec$imputations[[5]]
+summary(stagec_1)
+```
+
+```{r}
+par(mfrow = c(1, 2))
+plot(imp_stagec)
+missmap(stagec_1)
+```
+
+### Modeling with randomForest...
+
+위의 정제된 데이터를 이용하여 랜덤포레스트 모델을 생성한다.
+(data spliting into train and test set)
+
+```{r,message=FALSE, warning=FALSE}
+
+library(caret)
+train_idx <- createDataPartition(stagec_1$ploidy, p =.8, list = F)[, 1]
+test_idx <- setdiff(1:nrow(stagec_1), train_idx)
+
+train_set <- stagec_1[train_idx, ]
+test_set <- stagec_1[test_idx, ]
+```
+
+```{r}
+train_set %>%dim()
+test_set %>% dim()
+```
+
+traing rf model..
+
+```{r}
+m_rf <- randomForest(ploidy ~ ., data = stagec_1, ntree = 100, proximity = T)
+
+m_rf
+```
+
+### Which variables did do important role to this rf model?
+
+```{r}
+importance(m_rf)
+```
+
+```{r}
+varImpPlot(m_rf)
+```
+
+g2, pgtime 등의 순으로 모델의 중요변수임을 알 수 있다.
+
+### Evaluating trained model
+
+Confusion matrix를 생성해보자.
+
+```{r}
+actual <- test_set[, 'ploidy']
+yhat_rf <- predict(m_rf, test_set %>% dplyr::select(-ploidy))
+
+confusionMatrix(actual, yhat_rf)
+```
+
+정확도가 1이 나왔다. 생성한 랜덤포레스트 모델은 모든 테스트 데이터들을 올바르게 분류했다.
+Accuray is 1!!!
+
+```{r}
+par(mfrow = c(1, 2))
+plot(m_rf)
+plot(randomForest::margin(m_rf))
+par(mfrow = c(1, 1))
+```
+

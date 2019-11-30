@@ -436,7 +436,7 @@ test_set[, 1] %>%
 
 
 plot(y_perf_ada)
-plot(y_perf_ada_boost, add = T, col = 'red')
+plot(y_perf_ada_boost, add = T, col = 'red', lty = 2)
 abline(0, 1)
 
 
@@ -452,7 +452,7 @@ str(stagec)
 
 # Random Forest-------------------------------------------------------------------------
 
-# 새로운 자료에 대한 예측은 분류의 경우는 다수결로, 회귀의 경우에는 평균을 취하는 방법을 사요
+# 새로운 자료에 대한 예측은 분류의 경우는 다수결로, 회귀의 경우에는 평균을 취하는 방법을 사용
 
 # remove NA
 stagec3 <- stagec[complete.cases(stagec), ]
